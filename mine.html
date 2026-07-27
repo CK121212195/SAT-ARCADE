@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>21,000,000</title>
+<style>
+:root{
+  --bg:#0a0d13;
+  --panel:#141a25;
+  --cell:#1a2231;
+  --line:#242f43;
+  --ink:#e9f0fa;
+  --dim:#6b7d9a;
+  --gold:#f7931a;
+  --gap:9px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+  -webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;user-select:none;
+  display:flex;flex-direction:column;align-items:center}
+button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+#wrap{width:100%;max-width:440px;height:100%;display:flex;flex-direction:column;padding:10px 14px;gap:10px}
+
+/* ---- header ---- */
+header{display:flex;align-items:flex-end;gap:12px}
+.brand{flex:1;min-width:0}
+.brand .t{font-family:var(--mono);font-size:clamp(20px,6vw,28px);font-weight:700;letter-spacing:-.03em;line-height:1}
+.brand .s{font-size:10px;color:var(--dim);letter-spacing:.14em;margin-top:3px;font-family:var(--mono)}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 10px;text-align:center;min-width:74px}
+.box span{display:block;font-size:8.5px;letter-spacing:.16em;color:var(--dim)}
+.box b{font-family:var(--mono);font-size:15px;font-weight:700;line-height:1.3}
+.box b.g{color:var(--gold)}
+
+/* ---- ladder ---- */
+.ladder{display:flex;gap:3px;align-items:center;overflow:hidden}
+.ladder i{flex:1;height:4px;border-radius:99px;background:var(--cell);font-style:normal;transition:background .3s}
+.ladder i.on{background:var(--gold)}
+
+/* ---- board ---- */
+#boardwrap{position:relative;width:100%;max-width:min(440px,calc(100vh - 210px));margin:0 auto;aspect-ratio:1;background:var(--panel);
+  border:1px solid var(--line);border-radius:10px;padding:var(--gap);touch-action:none;flex:0 0 auto}
+.bg{position:absolute;inset:var(--gap);display:grid;grid-template-columns:repeat(4,1fr);
+  grid-template-rows:repeat(4,1fr);gap:var(--gap)}
+.bg div{background:var(--cell);border-radius:6px}
+#tiles{position:absolute;inset:var(--gap)}
+.tile{position:absolute;top:0;left:0;width:calc((100% - var(--gap)*3)/4);height:calc((100% - var(--gap)*3)/4);
+  border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:transform .11s ease-out;will-change:transform}
+.tile .v{font-family:var(--mono);font-weight:700;letter-spacing:-.04em;line-height:1;font-size:clamp(17px,6.4vw,28px)}
+.tile .u{font-size:clamp(7px,2.3vw,10px);opacity:.62;margin-top:3px;letter-spacing:.04em}
+.tile.long .v{font-size:clamp(14px,5.2vw,23px)}
+@keyframes pop{0%{transform:scale(.55)}60%{transform:scale(1.09)}100%{transform:scale(1)}}
+@keyframes born{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+.tile .in{width:100%;height:100%;border-radius:6px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center}
+.tile.new .in{animation:born .16s ease-out .08s both}
+.tile.merged .in{animation:pop .2s ease-out .09s both}
+
+/* tier colors */
+.t0{background:#20293a;color:#7b8fae}
+.t1{background:#233a52;color:#9dc6ec}
+.t2{background:#1c5059;color:#79e2e0}
+.t3{background:#1a604f;color:#72eec1}
+.t4{background:#3f5f1c;color:#c8e879}
+.t5{background:#6d5f15;color:#f2da79}
+.t6{background:#874f12;color:#ffc98c}
+.t7{background:#94340f;color:#ffae86}
+.t8{background:linear-gradient(145deg,#ffc247,#f7931a 55%,#d97706);color:#2a1a05;
+  box-shadow:0 0 24px #f7931a55}
+.t9{background:linear-gradient(145deg,#fff0c2,#ffc247);color:#33240a;box-shadow:0 0 30px #ffc24777}
+.t10{background:linear-gradient(145deg,#fff,#ffe9a8);color:#3a2a08;box-shadow:0 0 38px #ffe9a899}
+
+/* ---- footer ---- */
+footer{display:flex;gap:8px;align-items:center}
+.tip{flex:1;font-size:11.5px;color:var(--dim);line-height:1.45}
+.btn{padding:10px 14px;border-radius:6px;border:1px solid var(--line);background:var(--panel);
+  font-size:13px;font-weight:700;white-space:nowrap}
+.btn:disabled{opacity:.3}
+
+/* ---- banner ---- */
+#banner{position:fixed;left:50%;top:14px;transform:translate(-50%,-160%);z-index:25;
+  background:#f7931a;color:#20160a;padding:9px 16px;border-radius:99px;font-size:12.5px;font-weight:700;
+  box-shadow:0 8px 30px #00000066;max-width:92vw;text-align:center;transition:transform .35s cubic-bezier(.2,1.4,.4,1)}
+#banner.show{transform:translate(-50%,0)}
+
+/* ---- overlays ---- */
+.veil{position:fixed;inset:0;background:#0a0d13f2;display:flex;align-items:center;justify-content:center;
+  padding:22px;z-index:30}
+.card{max-width:400px;width:100%}
+.card h1{margin:0;font-family:var(--mono);font-size:clamp(34px,11vw,52px);font-weight:700;
+  letter-spacing:-.05em;line-height:1;color:var(--gold)}
+.kick{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:var(--dim);margin-bottom:8px}
+.one{font-size:16.5px;line-height:1.8;margin:20px 0 10px}
+.one b{color:var(--gold)}
+.sub{font-size:12.5px;line-height:1.95;color:var(--dim)}
+.chain{display:flex;flex-wrap:wrap;gap:5px;margin:18px 0 4px;align-items:center}
+.chip{font-family:var(--mono);font-size:11px;padding:4px 7px;border-radius:4px;background:var(--cell);color:var(--dim)}
+.chip.end{background:var(--gold);color:#20160a;font-weight:700}
+.arw{color:var(--dim);font-size:10px}
+.score{display:flex;gap:28px;margin:22px 0 6px;font-family:var(--mono)}
+.score span{display:block;font-size:9px;letter-spacing:.18em;color:var(--dim)}
+.score b{font-size:26px;color:var(--gold);font-weight:700}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(max-height:700px){.tile .u{display:none}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <div class="brand">
+      <div class="t">21,000,000</div>
+      <div class="s" data-t="brandSub"></div>
+    </div>
+    <div class="box"><span data-t="biggest"></span><b class="g" id="best">1</b></div>
+    <div class="box"><span data-t="moves"></span><b id="moves">0</b></div>
+  </header>
+  <div class="ladder" id="ladder"></div>
+  <div id="boardwrap">
+    <div class="bg" id="bg"></div>
+    <div id="tiles"></div>
+  </div>
+  <footer>
+    <div class="tip" id="tip" data-t="tip"></div>
+    <button class="btn" id="undo" data-t="undo" disabled></button>
+    <button class="btn" id="restart" data-t="restart"></button>
+  </footer>
+</div>
+
+<div id="banner"></div>
+
+<div class="veil" id="title">
+  <div class="card">
+    <div class="kick" data-t="kick"></div>
+    <h1>21,000,000</h1>
+    <div class="one" data-t="rule"></div>
+    <div class="chain" id="chain"></div>
+    <div class="sub" style="margin-top:14px" data-t="intro"></div>
+    <button class="btn" id="start" style="width:100%;margin-top:24px;padding:15px;background:var(--gold);color:#20160a;border-color:var(--gold)" data-t="start"></button>
+  </div>
+</div>
+
+<div class="veil" id="over" style="display:none">
+  <div class="card">
+    <div class="kick" id="overKick">no moves left</div>
+    <h1 id="overTitle" style="font-size:clamp(28px,8vw,40px);color:var(--ink)"></h1>
+    <div class="score">
+      <div><span data-t="biggest"></span><b id="oBest">—</b></div>
+      <div><span data-t="moves"></span><b id="oMoves">0</b></div>
+    </div>
+    <div class="sub" id="overTip" style="margin-top:12px"></div>
+    <button class="btn" id="again" style="width:100%;margin-top:22px;padding:15px;background:var(--gold);color:#20160a;border-color:var(--gold)"></button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var Q=new URLSearchParams(location.search);
+var L=(Q.get("lang")==="ja")?"ja":"en";
+document.documentElement.lang=L;
+var DICT={
+en:{
+ brandSub:"1 SAT &#8594; 1 BTC", biggest:"BIGGEST", moves:"MOVES",
+ tip:"Swipe, or use the arrow keys", undo:"Undo", restart:"Restart",
+ kick:"this world has only 21,000,000",
+ rule:"One rule.<br><b>Merge matching numbers to climb a digit.</b>",
+ intro:"Everything here is counted in sats. It takes 100 million of them to make 1 BTC.<br>And only 21 million of those will ever exist.",
+ start:"Start", again:"Play again", cont:"Keep going",
+ overKick:"no moves left", overTitle:"Stuck",
+ winKick:"1 btc", winTitle:'1 BTC <span style="color:var(--gold)">reached</span>',
+ winTip:"You packed 100,000,000 sats into a single tile.<br>Stop here, or push on for 1B sats (10 BTC).",
+ tiers:[{v:"1",u:"sat"},{v:"10",u:"sats"},{v:"100",u:"sats"},{v:"1K",u:"sats"},{v:"10K",u:"sats"},{v:"100K",u:"sats"},{v:"1M",u:"sats"},{v:"10M",u:"sats"},{v:"100M",u:"= 1 BTC"},{v:"1B",u:"= 10 BTC"},{v:"10B",u:"= 100 BTC"}],
+ facts:[null,null,"100 sats = 1 bit","1,000 sats — a typical Lightning payment","10,000 sats = 0.0001 BTC","100,000 sats = 0.001 BTC = 1 mBTC","1,000,000 sats = 0.01 BTC","10,000,000 sats = 0.1 BTC — one step to go","100,000,000 sats = 1 BTC 🎉 only 21 million will ever exist","10 BTC","100 BTC"],
+ tips:["Scattered small tiles clog the board. Park your biggest number in one corner and feed it.",
+       "Good. Pick a corner and never break that row.",
+       "Close. By 10M sats, half the board should already be sorted.",
+       "Well played. You broke through 100,000,000 sats = 1 BTC."]
+},
+ja:{
+ brandSub:"1 SAT &#8594; 1 BTC", biggest:"いちばん大きい", moves:"てすう",
+ tip:"スワイプ、または矢印キーで動かす", undo:"もどす", restart:"やり直す",
+ kick:"this world has only 21,000,000",
+ rule:"ルールはひとつ。<br><b>同じ数字をくっつけて、桁を上げる。</b>",
+ intro:"単位はぜんぶ sats。1億 sats でようやく 1 BTC。<br>その 1 BTC が、この世界には 2,100万枚しかありません。",
+ start:"はじめる", again:"もう一度", cont:"続ける",
+ overKick:"no moves left", overTitle:"動かせない",
+ winKick:"1 btc", winTitle:'1 BTC <span style="color:var(--gold)">達成</span>',
+ winTip:"1億 sats を1マスにまとめました。<br>ここで終わってもいいし、10億（10 BTC）を目指してもいい。",
+ tiers:[{v:"1",u:"sat"},{v:"10",u:"sats"},{v:"100",u:"sats"},{v:"1,000",u:"sats"},{v:"1万",u:"sats"},{v:"10万",u:"sats"},{v:"100万",u:"sats"},{v:"1000万",u:"sats"},{v:"1億",u:"= 1 BTC"},{v:"10億",u:"= 10 BTC"},{v:"100億",u:"= 100 BTC"}],
+ facts:[null,null,"100 sats = 1 bit（ビット）","1,000 sats — ライトニングでよく見る単位","1万 sats = 0.0001 BTC","10万 sats = 0.001 BTC = 1 mBTC","100万 sats = 0.01 BTC","1000万 sats = 0.1 BTC — あと1歩","1億 sats = 1 BTC 🎉 世界に 2,100万枚だけ","10 BTC","100 BTC"],
+ tips:["小さい数字を散らかすと詰まります。大きい数字は隅に置いて、そこへ寄せていくのがコツ。",
+       "いい線。ひとつの角を決めて、その列だけは絶対に崩さないようにしてみよう。",
+       "あと少し。1000万 sats まで来たら、盤面の半分はそろっているはず。",
+       "見事。1億 sats = 1 BTC の壁を越えました。"]
+}};
+var T=DICT[L];
+var N=4;
+var TIER=T.tiers;
+var FACT=T.facts;
+var grid, tiles, seq, moves, best, won, prev, banner=null, started=false;
+function $(i){return document.getElementById(i)}
+
+function init(){
+  grid=[]; for(var r=0;r<N;r++){grid.push([]);for(var c=0;c<N;c++)grid[r].push(null);}
+  tiles=[]; seq=1; moves=0; best=0; won=false; prev=null;
+  $("tiles").innerHTML="";
+  spawn(); spawn(); draw(true); started=true;
+}
+function mk(r,c,t){ return {id:seq++,r:r,c:c,t:t,isNew:true,merged:false}; }
+function spawn(){
+  var free=[];
+  for(var r=0;r<N;r++)for(var c=0;c<N;c++) if(!grid[r][c]) free.push([r,c]);
+  if(!free.length) return null;
+  var p=free[Math.floor(Math.random()*free.length)];
+  var t=mk(p[0],p[1],Math.random()<0.88?0:1);
+  grid[p[0]][p[1]]=t; tiles.push(t);
+  return t;
+}
+function snapshot(){
+  var g=[];
+  for(var r=0;r<N;r++){g.push([]);for(var c=0;c<N;c++)g[r].push(grid[r][c]?grid[r][c].t:null);}
+  return {g:g,moves:moves,best:best};
+}
+function restore(s){
+  grid=[];tiles=[];
+  $("tiles").innerHTML="";
+  for(var r=0;r<N;r++){grid.push([]);for(var c=0;c<N;c++){
+    if(s.g[r][c]===null){grid[r].push(null);continue;}
+    var t=mk(r,c,s.g[r][c]); grid[r].push(t); tiles.push(t);
+  }}
+  moves=s.moves; best=s.best; prev=null; draw(true);
+}
+
+/* ---- movement ---- */
+function move(dir){ // 0 up,1 right,2 down,3 left
+  tiles=tiles.filter(function(t){return !t.gone});
+  var snap=snapshot();
+  var dr=[-1,0,1,0][dir], dc=[0,1,0,-1][dir];
+  var rows=[0,1,2,3], cols=[0,1,2,3];
+  if(dr>0) rows=[3,2,1,0];
+  if(dc>0) cols=[3,2,1,0];
+  for(var i=0;i<tiles.length;i++){ tiles[i].isNew=false; tiles[i].merged=false; tiles[i].gone=false; }
+  var did=false, top=best;
+
+  for(var a=0;a<N;a++) for(var b=0;b<N;b++){
+    var r=rows[a], c=cols[b], t=grid[r][c];
+    if(!t) continue;
+    var nr=r, nc=c;
+    while(true){
+      var kr=nr+dr, kc=nc+dc;
+      if(kr<0||kr>=N||kc<0||kc>=N) break;
+      var o=grid[kr][kc];
+      if(!o){ nr=kr; nc=kc; continue; }
+      if(o.t===t.t && !o.merged && !o.gone){
+        grid[r][c]=null;
+        o.gone=true; o.r=kr; o.c=kc;
+        t.gone=true; t.r=kr; t.c=kc;
+        var m=mk(kr,kc,t.t+1); m.isNew=false; m.merged=true;
+        grid[kr][kc]=m; tiles.push(m);
+        if(m.t>top) top=m.t;
+        did=true;
+        if(FACT[m.t] && m.t>best) toast(FACT[m.t]);
+        nr=-1;
+      }
+      break;
+    }
+    if(nr<0) continue;
+    if(nr!==r||nc!==c){ grid[r][c]=null; grid[nr][nc]=t; t.r=nr; t.c=nc; did=true; }
+  }
+  if(!did) return;
+  best=top; moves++; prev=snap;
+  var s=spawn();
+  draw(false);
+  setTimeout(function(){
+    tiles=tiles.filter(function(t){return !t.gone});
+    draw(false,true);
+    if(!canMove()) gameOver();
+  },130);
+  if(best>=8 && !won){ won=true; setTimeout(winScreen,420); }
+}
+function canMove(){
+  for(var r=0;r<N;r++)for(var c=0;c<N;c++){
+    var t=grid[r][c];
+    if(!t) return true;
+    if(c<N-1 && grid[r][c+1] && grid[r][c+1].t===t.t) return true;
+    if(r<N-1 && grid[r+1][c] && grid[r+1][c].t===t.t) return true;
+  }
+  return false;
+}
+
+/* ---- draw ---- */
+var els={};
+function draw(reset,cleanup){
+  if(reset) els={};
+  var live={};
+  for(var i=0;i<tiles.length;i++){
+    var t=tiles[i]; live[t.id]=1;
+    var e=els[t.id];
+    if(!e){
+      e=document.createElement("div");
+      e.className="tile t"+t.t+(t.isNew?" new":"")+(t.merged?" merged":"")+(TIER[t.t].v.length>4?" long":"");
+      e.innerHTML='<div class="in"><div class="v">'+TIER[t.t].v+'</div><div class="u">'+TIER[t.t].u+'</div></div>';
+      pos(e,t.r,t.c);
+      $("tiles").appendChild(e); els[t.id]=e;
+    } else pos(e,t.r,t.c);
+  }
+  for(var id in els) if(!live[id]){ var el=els[id]; if(el.parentNode) el.parentNode.removeChild(el); delete els[id]; }
+
+  $("best").textContent=TIER[best].v;
+  $("moves").textContent=moves;
+  $("undo").disabled=!prev;
+  var lad="";
+  for(var k=0;k<9;k++) lad+='<i class="'+(k<=best?"on":"")+'"></i>';
+  $("ladder").innerHTML=lad;
+}
+function pos(e,r,c){
+  e.style.transform="translate(calc((100% + var(--gap)) * "+c+"), calc((100% + var(--gap)) * "+r+"))";
+}
+function toast(msg){
+  var b=$("banner"); b.textContent=msg; b.classList.add("show");
+  clearTimeout(banner);
+  banner=setTimeout(function(){b.classList.remove("show")},2600);
+}
+
+/* ---- end ---- */
+function winScreen(){
+  $("overKick").textContent=T.winKick;
+  $("overTitle").innerHTML=T.winTitle;
+  $("overTip").innerHTML=T.winTip;
+  $("again").textContent=T.cont;
+  $("again").dataset.cont="1";
+  show();
+}
+function gameOver(){
+  $("overKick").textContent=T.overKick;
+  $("overTitle").textContent=T.overTitle;
+  $("overTip").innerHTML = best<4?T.tips[0]:best<6?T.tips[1]:best<8?T.tips[2]:T.tips[3];
+  $("again").textContent=T.again;
+  delete $("again").dataset.cont;
+  show();
+}
+function show(){
+  $("oBest").textContent=TIER[best].v;
+  $("oMoves").textContent=moves;
+  $("over").style.display="flex";
+}
+
+/* ---- input ---- */
+document.addEventListener("keydown",function(e){
+  if(!started || $("over").style.display==="flex") return;
+  var k=e.key, d=-1;
+  if(k==="ArrowUp"||k==="w"||k==="W") d=0;
+  if(k==="ArrowRight"||k==="d"||k==="D") d=1;
+  if(k==="ArrowDown"||k==="s"||k==="S") d=2;
+  if(k==="ArrowLeft"||k==="a"||k==="A") d=3;
+  if(d<0) return;
+  e.preventDefault(); move(d);
+});
+var sx=0,sy=0,tracking=false;
+var bw=$("boardwrap");
+bw.addEventListener("touchstart",function(e){
+  if(e.touches.length!==1) return;
+  sx=e.touches[0].clientX; sy=e.touches[0].clientY; tracking=true;
+},{passive:true});
+bw.addEventListener("touchmove",function(e){ if(tracking) e.preventDefault(); },{passive:false});
+bw.addEventListener("touchend",function(e){
+  if(!tracking) return; tracking=false;
+  var t=e.changedTouches[0], dx=t.clientX-sx, dy=t.clientY-sy;
+  if(Math.abs(dx)<22 && Math.abs(dy)<22) return;
+  move(Math.abs(dx)>Math.abs(dy) ? (dx>0?1:3) : (dy>0?2:0));
+},{passive:true});
+var md=false;
+bw.addEventListener("mousedown",function(e){ md=true; sx=e.clientX; sy=e.clientY; });
+window.addEventListener("mouseup",function(e){
+  if(!md) return; md=false;
+  var dx=e.clientX-sx, dy=e.clientY-sy;
+  if(Math.abs(dx)<26 && Math.abs(dy)<26) return;
+  move(Math.abs(dx)>Math.abs(dy) ? (dx>0?1:3) : (dy>0?2:0));
+});
+
+$("undo").onclick=function(){ if(prev) restore(prev); };
+$("restart").onclick=function(){ init(); };
+$("start").onclick=function(){ $("title").style.display="none"; init(); };
+$("again").onclick=function(){
+  var cont=$("again").dataset.cont;
+  $("over").style.display="none";
+  if(!cont) init();
+};
+
+document.querySelectorAll("[data-t]").forEach(function(e){ e.innerHTML=T[e.getAttribute("data-t")]; });
+(function(){var h="";for(var i=0;i<9;i++){ if(i)h+='<span class="arw">&#8594;</span>';
+  h+='<span class="chip'+(i===8?" end":"")+'">'+T.tiers[i].v+(i===8?" = 1 BTC":"")+'</span>';}
+  $("chain").innerHTML=h;})();
+var bgc="";
+for(var i=0;i<16;i++) bgc+="<div></div>";
+$("bg").innerHTML=bgc;
+})();
+</script>
+</body>
+</html>
