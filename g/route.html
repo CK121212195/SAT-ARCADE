@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Routing</title>
+<style>
+:root{
+  --bg:#080c14;
+  --panel:#0f1622;
+  --line:#1e2b3f;
+  --ink:#eaf2ff;
+  --dim:#6d80a0;
+  --liq:#35e0c8;
+  --gold:#ffc247;
+  --dead:#2b374d;
+  --bad:#ff5f7a;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;user-select:none}
+button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+#wrap{height:100%;display:flex;flex-direction:column;max-width:900px;margin:0 auto}
+
+header{padding:10px 14px 8px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line)}
+.ask{flex:1;min-width:0}
+.ask .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--dim)}
+.ask .m{font-size:clamp(16px,4.4vw,22px);font-weight:700;letter-spacing:-.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.ask .m b{color:var(--gold);font-family:var(--mono)}
+.ask .m i{font-style:normal;color:var(--liq)}
+.side{text-align:right;font-family:var(--mono);flex:0 0 auto}
+.side .n{font-size:22px;font-weight:700;line-height:1.1}
+.side .l{font-size:9px;letter-spacing:.16em;color:var(--dim)}
+
+.hint{padding:8px 14px;font-size:12.5px;line-height:1.4;color:var(--gold);background:#ffc2470f;
+  border-bottom:1px solid var(--line);min-height:34px;display:flex;align-items:center}
+.hint.q{color:var(--dim);background:none}
+.hint.bad{color:var(--bad);background:#ff5f7a0f}
+
+#map{flex:1;min-height:0;width:100%;display:block;touch-action:manipulation}
+.ch{stroke-linecap:round}
+.lbl{font-family:var(--mono);font-size:2.6px;text-anchor:middle;paint-order:stroke;
+  stroke:#080c14;stroke-width:1.2px;pointer-events:none}
+.lbl.ok{fill:var(--liq)} .lbl.no{fill:var(--bad)}
+.name{font-size:2.5px;fill:var(--dim);text-anchor:middle;pointer-events:none}
+.glyph{font-size:4.4px;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+@keyframes ring{from{r:5;opacity:.8}to{r:11;opacity:0}}
+.pulse{animation:ring 1.6s ease-out infinite}
+
+footer{border-top:1px solid var(--line);padding:9px 12px calc(11px + env(safe-area-inset-bottom));
+  display:flex;gap:8px;align-items:center;background:var(--panel)}
+.route{flex:1;min-width:0;font-family:var(--mono);font-size:13px;color:var(--dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.route b{color:var(--ink)}
+.btn{padding:12px 16px;border-radius:6px;font-weight:700;font-size:14px;border:1px solid var(--line);
+  background:#182338;white-space:nowrap}
+.btn:disabled{opacity:.28;cursor:not-allowed}
+.btn.go{background:var(--gold);color:#20160a;border-color:var(--gold)}
+.btn.sm{font-size:13px;color:var(--dim)}
+
+.veil{position:fixed;inset:0;background:#080c14f5;display:flex;align-items:center;justify-content:center;
+  padding:22px;z-index:30}
+.card{max-width:440px;width:100%}
+.card h1{margin:0;font-size:clamp(30px,9vw,46px);font-weight:800;letter-spacing:-.05em;line-height:1.02}
+.card h1 em{font-style:normal;color:var(--gold)}
+.kick{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:var(--dim);margin-bottom:7px}
+.one{font-size:16px;line-height:1.85;margin:22px 0 10px}
+.one b{color:var(--liq)}
+.sub{font-size:12.5px;line-height:1.95;color:var(--dim)}
+.score{display:flex;gap:30px;margin:24px 0 4px;font-family:var(--mono)}
+.score span{display:block;font-size:9px;letter-spacing:.18em;color:var(--dim)}
+.score b{font-size:32px;color:var(--gold);font-weight:700}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <div class="ask">
+      <div class="k" id="kick">PAYMENT REQUEST</div>
+      <div class="m" id="ask">—</div>
+    </div>
+    <div class="side">
+      <div class="l" data-t="delivered"></div>
+      <div class="n" id="done">0</div>
+    </div>
+  </header>
+  <div class="hint" id="hint"></div>
+  <svg id="map" viewBox="0 0 100 74" preserveAspectRatio="xMidYMid meet"></svg>
+  <footer>
+    <div class="route" id="route"></div>
+    <button class="btn sm" id="undo" data-t="undo" disabled></button>
+    <button class="btn go" id="send" data-t="send" disabled></button>
+  </footer>
+</div>
+
+<div class="veil" id="title">
+  <div class="card">
+    <div class="kick">lightning network</div>
+    <h1 data-t="h1"></h1>
+    <div class="one" data-t="rule"></div>
+    <div class="sub" data-t="sub"></div>
+    <button class="btn go" id="start" style="width:100%;margin-top:26px;padding:15px" data-t="start"></button>
+  </div>
+</div>
+
+<div class="veil" id="over" style="display:none">
+  <div class="card">
+    <div class="kick">liquidity exhausted</div>
+    <h1 data-t="overH1"></h1>
+    <div class="score">
+      <div><span data-t="sDeliv"></span><b id="oDone">0</b></div>
+      <div><span data-t="sFees"></span><b id="oFee">0</b></div>
+    </div>
+    <div class="sub" id="overTip" style="margin-top:14px"></div>
+    <button class="btn go" id="again" style="width:100%;margin-top:24px;padding:15px" data-t="again"></button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var Q=new URLSearchParams(location.search);
+var L=(Q.get("lang")==="ja")?"ja":"en";
+document.documentElement.lang=L;
+var DICT={
+en:{
+ delivered:"DELIVERED", undo:"Undo", send:"Send it",
+ h1:'ROUTING<br><em>find the path</em>',
+ rule:"One rule.<br><b>Follow the lines and build a path to the other side.</b>",
+ sub:"The white marker on each line shows which side the money sits on.<br>The further the marker, the more you can push that way.<br>Lines you can use light up; lines without the balance turn red.",
+ start:"Start", again:"Play again",
+ overKick:"liquidity exhausted", overH1:'No path<br><em>left</em>',
+ sDeliv:"payments delivered", sFees:"fees paid",
+ names:["You","Cafe","Fish","Exchange","Bar","Books","Gig","Ramen","Bikes","Socks","Art","Cake"],
+ hints:["Start at YOU, follow a line, and tap a node that lights up.",
+        "Dark lines don't have the balance. A longer way round still works.",
+        "This one is reversed. Build a path from them back to YOU.",
+        "Sending pushes money to their side. Receiving pulls it back."],
+ to:"to", from:"from",
+ fee:"fee", tapStart:"tap to build a path",
+ quiet:function(a){return "only lines with "+a+" sats or more in that direction can carry it"},
+ nope:function(n,have,need){return "\u2192 "+n+" only has "+have+" sats this way. "+need+" sats won't fit."},
+ tips:["Reuse the same line and the money ends up stranded on their side for good.<br>You have three lines of your own \u2014 rotate them.",
+       "Good instincts. Next: use an incoming payment to deliberately refill a line you've drained.",
+       "Well played. Real Lightning node operators fight this exact imbalance every day."]
+},
+ja:{
+ delivered:"とどけた", undo:"もどす", send:"送金する",
+ h1:'ルーティング<br><em>送金の道</em>',
+ rule:"ルールはひとつ。<br><b>線をたどって、相手まで道をつくる。</b>",
+ sub:"線の上の白い印は、お金がどちら側に寄っているかを示します。<br>印が遠いほど、その方向にたくさん流せる。<br>通れる線は光り、残高が足りない線は赤くなります。",
+ start:"はじめる", again:"もう一度",
+ overKick:"liquidity exhausted", overH1:'道が<em>尽きた</em>',
+ sDeliv:"とどけた送金", sFees:"払った手数料",
+ names:["あなた","カフェ","魚屋","取引所","酒場","本屋","ライブ","ラーメン","自転車","靴下","アート","ケーキ"],
+ hints:["「あなた」から線をたどって、光っている相手をクリック。",
+        "暗い線は残高が足りない。遠回りしても届く。",
+        "今度は逆向き。相手から「あなた」へ道をつくる。",
+        "送るとお金は相手側へ寄り、受け取ると戻ってくる。"],
+ to:"へ", from:"から",
+ fee:"手数料", tapStart:"からタップして道をつくる",
+ quiet:function(a){return "この方向に "+a+" sats 以上ある線だけ通れる"},
+ nope:function(n,have,need){return "\u2192 "+n+" 方向は残高 "+have+" sats。"+need+" sats は通せない。"},
+ tips:["同じ線ばかり使うと、お金は相手側に寄りきって二度と通らなくなる。<br>3本ある自分の線を、順番に使ってみよう。",
+       "いい判断。次は「受け取り」で、減った線を意図的に選んで戻してみよう。",
+       "見事。実際のライトニングでも、ノード運営者はこの偏りと毎日戦っている。"]
+}};
+var T=DICT[L];
+var FEE=10;
+var NODES=[
+  {g:"🏠",x:11,y:38},{g:"☕",x:29,y:16},{g:"🐟",x:28,y:58},{g:"🏦",x:45,y:36},
+  {g:"🍺",x:50,y:63},{g:"📚",x:49,y:11},{g:"🎸",x:69,y:19},{g:"🍜",x:71,y:45},
+  {g:"🚲",x:65,y:66},{g:"🧦",x:89,y:33},{g:"🎨",x:86,y:62},{g:"🍰",x:89,y:11}];
+for(var _i=0;_i<NODES.length;_i++) NODES[_i].n=T.names[_i];
+var EDGES=[[0,1],[0,2],[0,3],[1,5],[1,3],[2,4],[2,3],[3,4],[3,7],[3,5],
+           [5,6],[6,7],[6,11],[7,9],[7,10],[7,8],[4,8],[8,10],[9,10],[9,11]];
+var HINTS=T.hints;
+
+var ch={}, adj=[], S=null, busy=false;
+function $(i){return document.getElementById(i)}
+function fmt(n){return n.toLocaleString("en-US")}
+function key(a,b){return a<b?a+"-"+b:b+"-"+a}
+function local(c,u){return u===c.a?c.ba:c.bb}
+function setLocal(c,u,v){ if(u===c.a){c.ba=v;c.bb=c.cap-v;} else {c.bb=v;c.ba=c.cap-v;} }
+function canPush(u,v,amt){var c=ch[key(u,v)];return !!c && local(c,u)>=amt}
+
+function build(){
+  ch={}; adj=[];
+  for(var i=0;i<NODES.length;i++) adj.push([]);
+  for(var e=0;e<EDGES.length;e++){
+    var a=EDGES[e][0], b=EDGES[e][1];
+    var cap=Math.round((2200+Math.random()*3000)/50)*50;
+    var c={a:a,b:b,cap:cap,ba:0,bb:0};
+    setLocal(c,a,Math.round(cap*(0.3+Math.random()*0.4)/50)*50);
+    ch[key(a,b)]=c; adj[a].push(b); adj[b].push(a);
+  }
+  for(var j=0;j<adj[0].length;j++){
+    var c0=ch[key(0,adj[0][j])];
+    setLocal(c0,0,Math.round(c0.cap*0.62/50)*50);
+  }
+}
+/* forward: what start can push to */
+function reachFrom(start,amt){
+  var d={},q=[start]; d[start]=0;
+  while(q.length){ var u=q.shift();
+    for(var i=0;i<adj[u].length;i++){ var v=adj[u][i];
+      if(d[v]===undefined && canPush(u,v,amt)){ d[v]=d[u]+1; q.push(v); } } }
+  return d;
+}
+/* backward: who can push into target */
+function reachTo(target,amt){
+  var d={},q=[target]; d[target]=0;
+  while(q.length){ var u=q.shift();
+    for(var i=0;i<adj[u].length;i++){ var v=adj[u][i];
+      if(d[v]===undefined && canPush(v,u,amt)){ d[v]=d[u]+1; q.push(v); } } }
+  return d;
+}
+
+function newGame(){ build(); S={done:0,fees:0,round:0,src:0,dst:1,amt:0,path:[0],inb:false}; next(); }
+
+function next(){
+  S.round++;
+  var amt=Math.round((320+S.round*95)*(0.8+Math.random()*0.45)/10)*10;
+  var wantIn = S.round===3 ? true : (S.round>3 && Math.random()<0.42);
+  var minD = S.round===1 ? 1 : 2;
+
+  var order = wantIn ? [true,false] : [false,true];
+  for(var o=0;o<2;o++){
+    var inb=order[o];
+    var d = inb ? reachTo(0,amt) : reachFrom(0,amt);
+    var cand=[], fall=[];
+    for(var i=1;i<NODES.length;i++){
+      if(d[i]===undefined) continue;
+      if(d[i]>=minD) cand.push(i); else fall.push(i);
+    }
+    var pool = cand.length?cand:fall;
+    if(pool.length){
+      S.inb=inb; S.amt=amt;
+      var other=pool[Math.floor(Math.random()*pool.length)];
+      S.src=inb?other:0; S.dst=inb?0:other;
+      S.path=[S.src]; render(); return true;
+    }
+  }
+  gameOver(); return false;
+}
+
+function render(){
+  var end=S.path[S.path.length-1], used={};
+  for(var i=0;i<S.path.length-1;i++) used[key(S.path[i],S.path[i+1])]=1;
+  var svg="";
+
+  for(var e=0;e<EDGES.length;e++){
+    var a=EDGES[e][0], b=EDGES[e][1], c=ch[key(a,b)];
+    var A=NODES[a], B=NODES[b];
+    var t=c.ba/c.cap;
+    var nx=A.x+(B.x-A.x)*t, ny=A.y+(B.y-A.y)*t;
+    var touching=(a===end||b===end), other=(a===end?b:a);
+    var live=touching && S.path.indexOf(other)<0;
+    var ok=live && canPush(end,other,S.amt);
+    var isUsed=!!used[key(a,b)];
+    var col=isUsed?"var(--gold)":ok?"var(--liq)":live?"var(--bad)":"var(--dead)";
+    var w=isUsed?2.5:ok?2.1:1.3;
+    svg+='<line class="ch" x1="'+A.x+'" y1="'+A.y+'" x2="'+B.x+'" y2="'+B.y+'" stroke="'+col+'" stroke-width="'+w+'" opacity="'+(isUsed||ok?1:live?.7:.55)+'"/>';
+    svg+='<circle cx="'+nx+'" cy="'+ny+'" r="1.15" fill="#080c14" stroke="#eaf2ff" stroke-width=".5" opacity="'+(live?1:.55)+'" pointer-events="none"/>';
+    if(live){
+      var px=NODES[end].x+(NODES[other].x-NODES[end].x)*.40;
+      var py=NODES[end].y+(NODES[other].y-NODES[end].y)*.40-1.3;
+      svg+='<text class="lbl '+(ok?"ok":"no")+'" x="'+px+'" y="'+py+'">'+fmt(local(c,end))+'</text>';
+    }
+  }
+  for(var i2=0;i2<NODES.length;i2++){
+    var N=NODES[i2], isEnd=(i2===end), isDst=(i2===S.dst), inP=S.path.indexOf(i2)>=0;
+    if(isDst) svg+='<circle class="pulse" cx="'+N.x+'" cy="'+N.y+'" r="5" fill="none" stroke="var(--gold)" stroke-width=".55"/>';
+    var st=isDst?"var(--gold)":isEnd?"var(--liq)":inP?"var(--gold)":"var(--line)";
+    svg+='<circle cx="'+N.x+'" cy="'+N.y+'" r="4.2" fill="'+(inP?"#182338":"#0f1622")+'" stroke="'+st+'" stroke-width="'+(isEnd||isDst?1:.6)+'" pointer-events="none"/>';
+    svg+='<text class="glyph" x="'+N.x+'" y="'+N.y+'">'+N.g+'</text>';
+    svg+='<text class="name" x="'+N.x+'" y="'+(N.y+7.5)+'">'+N.n+'</text>';
+    svg+='<circle cx="'+N.x+'" cy="'+N.y+'" r="6.6" fill="transparent" data-n="'+i2+'" style="cursor:pointer"/>';
+  }
+  $("map").innerHTML=svg;
+
+  var o=S.inb?S.src:S.dst;
+  $("kick").textContent=S.inb?"INCOMING PAYMENT":"PAYMENT REQUEST";
+  $("ask").innerHTML = S.inb
+    ? NODES[o].g+" "+NODES[o].n+" <i>"+T.from+"</i> <b>"+fmt(S.amt)+"</b> sats"
+    : NODES[o].g+" "+NODES[o].n+" <i>"+T.to+"</i> <b>"+fmt(S.amt)+"</b> sats";
+  $("done").textContent=S.done;
+
+  var r="";
+  for(var p=0;p<S.path.length;p++) r+=(p?" → ":"")+NODES[S.path[p]].g;
+  $("route").innerHTML = S.path.length>1
+    ? "<b>"+r+"</b>　"+T.fee+" "+fmt((S.path.length-1)*FEE)
+    : "<span>"+NODES[S.src].g+" "+T.tapStart+"</span>";
+  $("send").disabled = (end!==S.dst);
+  $("undo").disabled = (S.path.length<2);
+
+  var h=$("hint");
+  if(S.round<=HINTS.length){ h.className="hint"; h.textContent="→ "+HINTS[S.round-1]; }
+  else { h.className="hint q"; h.textContent=T.quiet(fmt(S.amt)); }
+}
+
+$("map").addEventListener("click",function(e){
+  if(busy||!S) return;
+  var a=e.target.getAttribute&&e.target.getAttribute("data-n");
+  if(a===null||a===undefined) return;
+  var i=+a, end=S.path[S.path.length-1], at=S.path.indexOf(i);
+  if(at>=0){ if(at>0){S.path=S.path.slice(0,at);} render(); return; }
+  if(!ch[key(end,i)]) return;
+  if(!canPush(end,i,S.amt)){
+    var h=$("hint"); h.className="hint bad";
+    h.textContent=T.nope(NODES[i].n,fmt(local(ch[key(end,i)],end)),fmt(S.amt));
+    return;
+  }
+  S.path.push(i); render();
+});
+$("undo").onclick=function(){ if(S.path.length>1){S.path.pop();render();} };
+$("send").onclick=function(){ if(!busy) deliver(); };
+
+function deliver(){
+  busy=true;
+  var path=S.path.slice(), pts=[];
+  for(var i=0;i<path.length;i++) pts.push(NODES[path[i]]);
+  var dot=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  dot.setAttribute("r","2"); dot.setAttribute("fill","var(--gold)");
+  $("map").appendChild(dot);
+  var t0=0, dur=200*(pts.length-1)+200;
+  function step(ts){
+    if(!t0) t0=ts;
+    var p=Math.min(1,(ts-t0)/dur), seg=p*(pts.length-1);
+    var k=Math.min(pts.length-2,Math.floor(seg)), f=seg-k;
+    dot.setAttribute("cx",pts[k].x+(pts[k+1].x-pts[k].x)*f);
+    dot.setAttribute("cy",pts[k].y+(pts[k+1].y-pts[k].y)*f);
+    if(p<1) requestAnimationFrame(step);
+    else{
+      if(dot.parentNode) dot.parentNode.removeChild(dot);
+      for(var i=0;i<path.length-1;i++){
+        var c=ch[key(path[i],path[i+1])];
+        setLocal(c,path[i],local(c,path[i])-S.amt);
+      }
+      S.done++; S.fees+=(path.length-1)*FEE;
+      busy=false; next();
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function gameOver(){
+  $("oDone").textContent=S.done;
+  $("oFee").textContent=fmt(S.fees);
+  $("overTip").innerHTML = S.done<6?T.tips[0]:S.done<14?T.tips[1]:T.tips[2];
+  $("over").style.display="flex";
+}
+
+document.querySelectorAll("[data-t]").forEach(function(e){e.innerHTML=T[e.getAttribute("data-t")];});
+$("start").onclick=function(){ $("title").style.display="none"; newGame(); };
+$("again").onclick=function(){ $("over").style.display="none"; newGame(); };
+})();
+</script>
+</body>
+</html>
