@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SAT ARCADE — four small games about how Bitcoin actually works</title>
+<meta name="description" content="Four small browser games about how Bitcoin actually works. Free, no signup, no wallet needed.">
+<meta property="og:title" content="SAT ARCADE">
+<meta property="og:description" content="Four small games about how Bitcoin actually works.">
+<style>
+:root{
+  --bg:#080b12;
+  --panel:#111825;
+  --panel2:#18202f;
+  --line:#212c3f;
+  --ink:#e9f0fa;
+  --dim:#6c7d99;
+  --gold:#f7931a;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+  -webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;color:inherit;border:none;background:none;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+a{color:inherit}
+
+/* ---------- menu ---------- */
+#menu{max-width:680px;margin:0 auto;padding:26px 18px 40px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.wordmark{font-family:var(--mono);font-size:clamp(26px,7.5vw,40px);font-weight:700;letter-spacing:-.045em;line-height:1}
+.wordmark em{font-style:normal;color:var(--gold)}
+.tagline{font-size:13.5px;color:var(--dim);line-height:1.65;margin-top:9px;max-width:34em}
+.lang{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;flex:0 0 auto}
+.lang button{padding:6px 11px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.lang button.on{background:var(--gold);color:#20160a;font-weight:700}
+
+.cards{display:grid;gap:10px;margin-top:26px}
+.card{display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:9px;
+  background:var(--panel);padding:15px 16px;position:relative;overflow:hidden;
+  transition:border-color .16s,transform .08s,background .16s}
+.card:hover{background:var(--panel2);border-color:#3a4a68}
+.card:active{transform:scale(.994)}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acc)}
+.card .row{display:flex;align-items:center;gap:11px}
+.card .ic{font-size:23px;line-height:1;flex:0 0 auto}
+.card .nm{font-family:var(--mono);font-size:16.5px;font-weight:700;letter-spacing:-.02em;flex:1;min-width:0}
+.card .meta{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--dim);white-space:nowrap}
+.card .rule{font-size:14px;line-height:1.6;margin-top:9px}
+.card .learn{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-top:7px}
+.card .learn b{color:var(--acc);font-weight:600}
+
+/* ---------- support ---------- */
+.support{margin-top:28px;border:1px solid var(--line);border-radius:9px;background:var(--panel);padding:16px}
+.support h2{margin:0 0 7px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.support p{margin:0 0 13px;font-size:13.5px;line-height:1.7;color:#b4c1d6}
+.addr{display:flex;gap:7px;align-items:stretch}
+.addr code{flex:1;min-width:0;font-family:var(--mono);font-size:12.5px;background:#0a0e16;
+  border:1px solid var(--line);border-radius:6px;padding:11px 12px;overflow-x:auto;white-space:nowrap;
+  display:flex;align-items:center}
+.addr button{flex:0 0 auto;padding:0 16px;border-radius:6px;background:var(--gold);color:#20160a;
+  font-weight:700;font-size:13px;white-space:nowrap}
+.foot{margin-top:22px;font-family:var(--mono);font-size:10.5px;color:var(--dim);line-height:1.8}
+
+/* ---------- stage ---------- */
+#stage{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;z-index:10}
+#stage.on{display:flex}
+.bar{flex:0 0 auto;height:38px;display:flex;align-items:center;gap:10px;padding:0 10px;
+  border-bottom:1px solid var(--line);background:var(--panel)}
+.bar .back{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:6px 8px;
+  border-radius:6px;margin-left:-4px}
+.bar .back:hover{background:var(--panel2)}
+.bar .who{flex:1;font-family:var(--mono);font-size:12px;color:var(--dim);text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .lang2{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.bar .lang2 button{padding:4px 8px;font-family:var(--mono);font-size:10px;color:var(--dim)}
+.bar .lang2 button.on{background:var(--gold);color:#20160a;font-weight:700}
+#frame{flex:1;min-height:0;width:100%;border:0;display:block}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <div class="top">
+    <div>
+      <div class="wordmark">SAT <em>ARCADE</em></div>
+      <div class="tagline" id="tagline"></div>
+    </div>
+    <div class="lang">
+      <button data-lang="en">EN</button>
+      <button data-lang="ja">日本語</button>
+    </div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <div class="support">
+    <h2 id="supH"></h2>
+    <p id="supP"></p>
+    <div class="addr">
+      <code id="addr">brashridge65@walletofsatoshi.com</code>
+      <button id="copy"></button>
+    </div>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<div id="stage">
+  <div class="bar">
+    <button class="back" id="back">← <span id="backLbl"></span></button>
+    <div class="who" id="who"></div>
+    <div class="lang2">
+      <button data-lang="en">EN</button>
+      <button data-lang="ja">日本語</button>
+    </div>
+  </div>
+  <iframe id="frame" title="game" allow="fullscreen"></iframe>
+</div>
+
+<script>
+(function(){
+"use strict";
+var GAMES=[
+ {id:"21m",  file:"g/21m.html",   ic:"\uD83D\uDD22", nm:"21,000,000", acc:"#f7931a"},
+ {id:"hodl", file:"g/hodl.html",  ic:"\uD83D\uDCC8", nm:"1.0000",     acc:"#3ddc97"},
+ {id:"route",file:"g/route.html", ic:"\u26A1",       nm:"ROUTING",    acc:"#35e0c8"},
+ {id:"mine", file:"g/mine.html",  ic:"\u26CF",       nm:"BLOCK TEMPLATE", acc:"#ff9f6e"}
+];
+var TXT={
+en:{
+ tagline:"Four small games about how Bitcoin actually works. No signup, no wallet, nothing to install \u2014 they just run in this tab.",
+ back:"All games", supH:"Support",
+ supP:"These are free and always will be. If one of them taught you something, a few sats are welcome.",
+ copy:"Copy", copied:"Copied",
+ foot:"Made by Mini statistic \u00b7 open in any browser \u00b7 works offline once loaded",
+ g:{
+  "21m":{rule:"Merge matching numbers. Climb from 1 sat all the way to 1 BTC.", learn:"teaches: <b>what a sat is actually worth</b>", meta:"EASY \u00b7 3\u20136 MIN"},
+  "hodl":{rule:"Two buttons. Try to end up holding more bitcoin than you started with.", learn:"teaches: <b>cycles, and your own nerves</b>", meta:"EASY \u00b7 90 SEC"},
+  "route":{rule:"Follow the lines and build a path a payment can actually take.", learn:"teaches: <b>Lightning channel balances</b>", meta:"MEDIUM \u00b7 5\u20138 MIN"},
+  "mine":{rule:"Fill the block with transactions. Nothing is mining while you fill it.", learn:"teaches: <b>the fee market and the halving</b>", meta:"HARD \u00b7 5\u20138 MIN"}
+ }
+},
+ja:{
+ tagline:"ビットコインの仕組みそのものが遊びになっている、4つの小さなゲーム。登録もウォレットもインストールも不要。このタブでそのまま動きます。",
+ back:"ゲーム一覧", supH:"サポート",
+ supP:"すべて無料です。何かひとつでも分かった、と思ってもらえたら、投げ銭を受け取ります。",
+ copy:"コピー", copied:"コピーしました",
+ foot:"Made by Mini statistic \u00b7 ブラウザだけで動作 \u00b7 一度読み込めばオフラインでも遊べます",
+ g:{
+  "21m":{rule:"同じ数字をくっつけて、桁を上げる。1 sat から 1 BTC まで。", learn:"わかること：<b>1 sat の大きさ</b>", meta:"やさしい \u00b7 3\u20136分"},
+  "hodl":{rule:"ボタンは2つだけ。最初より BTC の枚数を増やせるか。", learn:"わかること：<b>相場の周期と、自分の弱さ</b>", meta:"やさしい \u00b7 90秒"},
+  "route":{rule:"線をたどって、送金が本当に通る道をつくる。", learn:"わかること：<b>ライトニングのチャネル残高</b>", meta:"ふつう \u00b7 5\u20138分"},
+  "mine":{rule:"取引をブロックに詰める。詰めている間、採掘は止まっている。", learn:"わかること：<b>手数料市場と半減期</b>", meta:"むずかしい \u00b7 5\u20138分"}
+ }
+}};
+function $(i){return document.getElementById(i)}
+var lang=(new URLSearchParams(location.search).get("lang")==="ja")?"ja":"en";
+
+function render(){
+  var T=TXT[lang];
+  document.documentElement.lang=lang;
+  $("tagline").textContent=T.tagline;
+  $("supH").textContent=T.supH;
+  $("supP").textContent=T.supP;
+  $("copy").textContent=T.copy;
+  $("foot").textContent=T.foot;
+  $("backLbl").textContent=T.back;
+  var h="";
+  for(var i=0;i<GAMES.length;i++){
+    var g=GAMES[i], t=T.g[g.id];
+    h+='<button class="card" data-go="'+g.id+'" style="--acc:'+g.acc+'">'
+      +'<div class="row"><span class="ic">'+g.ic+'</span><span class="nm">'+g.nm+'</span>'
+      +'<span class="meta">'+t.meta+'</span></div>'
+      +'<div class="rule">'+t.rule+'</div>'
+      +'<div class="learn">'+t.learn+'</div></button>';
+  }
+  $("cards").innerHTML=h;
+  var all=document.querySelectorAll("[data-lang]");
+  for(var k=0;k<all.length;k++) all[k].className = all[k].getAttribute("data-lang")===lang?"on":"";
+}
+function byId(id){ for(var i=0;i<GAMES.length;i++) if(GAMES[i].id===id) return GAMES[i]; return null; }
+
+function route(){
+  var id=location.hash.replace(/^#/,""), g=byId(id);
+  if(g){
+    $("frame").src=g.file+"?lang="+lang;
+    $("who").textContent=g.nm;
+    $("stage").className="on";
+    document.body.style.overflow="hidden";
+  }else{
+    $("frame").removeAttribute("src");   /* stops every timer inside the game */
+    $("stage").className="";
+    document.body.style.overflow="";
+  }
+}
+document.addEventListener("click",function(e){
+  var c=e.target.closest("[data-go]");
+  if(c){ location.hash="#"+c.getAttribute("data-go"); return; }
+  var l=e.target.closest("[data-lang]");
+  if(l){
+    lang=l.getAttribute("data-lang");
+    var u=new URL(location.href);
+    u.searchParams.set("lang",lang);
+    history.replaceState(null,"",u);
+    render(); route();            /* reloads the open game in the new language */
+    return;
+  }
+  if(e.target.closest("#back")){ location.hash=""; return; }
+  if(e.target.closest("#copy")){
+    var a=$("addr").textContent.trim(), btn=$("copy");
+    var done=function(){ btn.textContent=TXT[lang].copied; setTimeout(function(){btn.textContent=TXT[lang].copy;},1600); };
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(a).then(done,fallback); }
+    else fallback();
+    function fallback(){
+      var ta=document.createElement("textarea");
+      ta.value=a; ta.style.position="fixed"; ta.style.opacity="0";
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand("copy"); done(); }catch(err){}
+      document.body.removeChild(ta);
+    }
+  }
+});
+window.addEventListener("hashchange",route);
+render(); route();
+})();
+</script>
+</body>
+</html>
